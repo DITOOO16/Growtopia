@@ -1,0 +1,284 @@
+autosetbot = true
+	setItem = 2796	--2978 is vending -- untk posisi bot
+bot = {
+	"ditgarbage1",
+	"ditgarbage2",
+	"ditgarbage3",
+	"ditgarbage4",
+	"ditgarbage5",
+	"ditgarbage6",
+	"ditgarbage7",
+	"ditgarbage8",
+	"ditgarbage9",
+	"ditgarbage10",
+	"ditgarbage11",
+	"ditgarbage12",
+	"ditgarbage13",
+	"ditgarbage14",
+	"ditgarbage15",
+	"ditgarbage16",
+	"ditgarbage17",
+	"ditgarbage18",
+	"ditgarbage19",
+	"ditgarbage20",
+	"ditgarbage21",
+	"ditgarbage22",
+	"ditgarbage23",
+	"ditgarbage24" }
+jumlah = 17  --jumlah bot
+
+delay = 5 * 1000 --5 detik waktu tunggu harvest
+--[[delay: how many sec u want to wait to harvest
+depends on how many plat u use,
+more plat, more fast]]
+
+
+--===batas suci===--
+block = 880
+seed = block + 1
+if autosetbot then
+	tbl={}
+	n=0
+	for _,tile in pairs(getTiles()) do
+		if tile.fg == setItem or tile.bg == setItem then			
+			n=n+1
+			if getLocal().name == bot[n] then
+				findPath(tile.pos.x,tile.pos.y)
+				savex = tile.pos.x
+				savey = tile.pos.y
+				sleep(100)			
+			end
+		end
+	end
+end
+sleep(1000)
+
+function place(x,y,id)
+	local pkt = {}
+	pkt.type = 3
+	pkt.int_data = id
+	pkt.pos_x = getLocal().pos.x
+	pkt.pos_y = getLocal().pos.y
+	pkt.int_x = x
+	pkt.int_y = y
+	sendPacketRaw(pkt)
+end
+function hit(x,y)
+	local pkt = {}
+	pkt.type = 3
+	pkt.int_data = 18
+	pkt.pos_x = getLocal().pos.x
+	pkt.pos_y = getLocal().pos.y
+	pkt.int_x = x
+	pkt.int_y = y
+	sendPacketRaw(pkt)
+end
+function plant(id)
+	local pkt = {}
+	pkt.type = 3
+	pkt.int_data = id
+	pkt.pos_x = getLocal().pos.x
+	pkt.pos_y = getLocal().pos.y
+	pkt.int_x = getLocal().pos.x / 32
+	pkt.int_y = getLocal().pos.y / 32
+	sendPacketRaw(pkt)
+end
+function harvest()
+	local pkt = {}
+	pkt.type = 3
+	pkt.int_data = 18
+	pkt.pos_x = getLocal().pos.x
+	pkt.pos_y = getLocal().pos.y
+	pkt.int_x = getLocal().pos.x / 32
+	pkt.int_y = getLocal().pos.y / 32
+	sendPacketRaw(pkt)
+end
+function wrench()
+	local pkt = {}
+	pkt.type = 3
+	pkt.int_data = 32
+	pkt.pos_x = getLocal().pos.x
+	pkt.pos_y = getLocal().pos.y
+	pkt.int_x = getLocal().pos.x / 32
+	pkt.int_y = getLocal().pos.y / 32
+	sendPacketRaw(pkt)
+end
+
+function hidevend(varlist)
+	if varlist[0]:find("OnDialogRequest") and varlist[1]:find("end_dialog|vending") then			
+		if varlist[1]:find("Flour") then
+			local pkt = string.format([[action|dialog_return
+			dialog_name|vending
+			tilex|%d|
+			tiley|%d|
+			buttonClicked|addstock]],
+			varlist[1]:match("embed_data|tilex|(%d+)"),
+			varlist[1]:match("embed_data|tiley|(%d+)"))
+			
+			sendPacket(pkt,2)
+			return true
+		end
+		if varlist[1]:find("add_textbox|This machine is empty.") then
+			local pkt = string.format([[action|dialog_return
+			dialog_name|vending
+			tilex|%d|
+			tiley|%d|
+			stockitem|4562]],
+			varlist[1]:match("embed_data|tilex|(%d+)"),
+			varlist[1]:match("embed_data|tiley|(%d+)"))
+			
+			sendPacket(pkt,2)
+		end
+		return true
+	end
+end
+function hookgrind(varlist)
+	if varlist[0]:find("OnDialogRequest") and varlist[1]:find("end_dialog|grinder") then
+		local pkt = string.format([[action|dialog_return
+		dialog_name|grinder
+		tilex|%d|
+		tiley|%d|
+		itemID|880|
+		count|%d
+		]],
+		varlist[1]:match("tilex|(%d+)"),
+		varlist[1]:match("tiley|(%d+)"),
+		varlist[1]:match("count||(%d+)"))
+
+		sendPacket(pkt,2)
+		return true
+	end
+end
+function grind(x,y)
+	local pkt = {}
+	pkt.type = 3
+	pkt.int_data = 880
+	pkt.pos_x = getLocal().pos.x
+	pkt.pos_y = getLocal().pos.y
+	pkt.int_x = x
+	pkt.int_y = y
+	sendPacketRaw(pkt)
+end
+function getItemCount(id)
+    for _,v in pairs(getInventory()) do
+        if v.id==id then
+            if v.count < 0 then return v.count+256
+			else return v.count end
+        end
+    end
+	return 0
+end
+function pnb(x,y,id)	
+		while getItemCount(id) > 1 do
+			if getTile(x-1, y).fg == 0 then
+			place(x-1, y, id)
+			sleep(200)
+			end
+			if getTile(x+1, y).fg == 0 then
+			place(x+1, y, id)
+			sleep(200)
+			end
+
+			while getTile(x-1, y).fg > 0 do
+				if getTile(x-1, y).fg > 0 then
+				hit(x-1, y)
+				sleep(200)
+				end
+				if getTile(x+1, y).fg > 0 then
+				hit(x+1, y)
+				sleep(200)
+				end
+			end
+		end
+	
+end
+function gotoGrind()
+	for _,tile in pairs(getTiles()) do
+		if tile.fg == 4582 then
+			findPath(savex,savey)
+			sleep(10)
+			findPath(tile.pos.x,tile.pos.y+1)
+			sleep(100)
+			grind(tile.pos.x,tile.pos.y)
+			sleep(500)
+		end
+	end
+	local posx = getLocal().tile.x
+	local posy = getLocal().tile.y
+	for i=0,99 do
+		if getTile(i,posy).fg == 2978 then
+			if getItemCount(4562) > 0 then
+				findPath(i,posy)
+				sleep(200)
+				wrench()
+				sleep(600)
+			end
+		end
+	end
+	findPath(posx,posy)
+	sleep(100)
+	findPath(savex,savey)
+end
+
+function farm ()
+x = 0
+if getItemCount(seed) < 150 then
+findPath(savex,savey)
+sleep(100)
+pnb(savex,savey,block)
+sleep(200)
+end
+while x < 100 do
+--made by kiminotoriko#3770
+	if getTile(x,savey+1).fg > 0 then
+		if getTile(x,savey).fg == seed then
+			findPath(x,savey)			
+			harvest() 
+			sleep(500)	
+		end
+		if getItemCount(seed) > 1 then
+			if getTile(x,savey).fg == 0 then
+				if x < savex - 1 or x > savex + 1 then
+				findPath(x,savey)			
+				plant(seed)
+				sleep(500)	
+				end			
+			end
+		end
+		if getItemCount(block) == 200 then
+			if getItemCount(seed) > 50 then
+				gotoGrind()
+				sleep(500)
+				if getItemCount(4562) > 12 then farming=false;return farming end
+			else
+				findPath(savex,savey)
+				sleep(100)
+				pnb(savex,savey,block)
+			end
+		end
+	end
+	x = x + 1
+	end
+sleep(delay)
+end
+
+
+--== made by bujeddd#6595 ==--
+--savex = getLocal().tile.x
+--savey = getLocal().tile.y
+addHook("OnVarlist","gg2",hidevend)
+addHook("OnVarlist","grind",hookgrind)
+
+farming = true
+while true do
+	while farming do
+	sendPacket("action|buy\nitem|upgrade_backpack", 2)
+		farm()
+	end
+	sleep(5000)
+end
+
+
+
+
+

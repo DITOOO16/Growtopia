@@ -1,0 +1,210 @@
+removeHooks()
+seedsID = "5667"    -- seeds you want to retrive/drop
+blocksID = "5667"   -- blocks you want to retrive/drop
+ObsidianID = 12       -- Obsidian ID you can change to what block you want
+PlatID = 102        -- Plat ID you can change to what block you want
+FissureID = 1422    -- Fissure ID/block that you want to drop seed 
+DoorID = 120         -- Door ID/block that you want to drop block from 
+CountID = 200       -- How many items you want to drop
+world_drop = "100ksulapdit"  -- World drop 
+world_break = "winterlgrid169" -- World drop
+delay_pindahWorld = 6000 -- Bisa diubah jadi 3000 - 3500 kalo server gk lag
+
+function dropItem(itemID, count)
+    hideDrop = true
+    sendPacket("action|drop\n|itemID|" .. itemID, 2)
+    sendPacket("action|dialog_return\ndialog_name|drop_item\nitemID|" .. itemID .. "|\ncount|" .. count, 2)
+    sleep(175)
+    hideDrop = false
+end
+
+function faceSide(side)
+    if side == "left" then
+        packet = {}
+        packet.type = 0
+        packet.pos_x = getLocal().pos.x
+        packet.pos_y = getLocal().pos.y
+        packet.flags = 48
+        sendPacketRaw(packet)
+        return
+    end
+    if side == "right" then
+        packet = {}
+        packet.type = 0
+        packet.pos_x = getLocal().pos.x
+        packet.pos_y = getLocal().pos.y
+        packet.flags = 32
+        sendPacketRaw(packet)
+        return
+    end
+    log("`cInvalid side chosen (`4" .. side .. "`c)")
+end
+
+function hitTile(x, y)
+    pkt = {}
+    pkt.type = 3
+    pkt.int_data = 32
+    pkt.int_x = x
+    pkt.int_y = y
+    pkt.pos_x = getLocal().pos.x
+    pkt.pos_y = getLocal().pos.y
+    sendPacketRaw(pkt)
+end
+
+function joinWorld(world)
+    sendPacket("action|join_request\nname|" .. world, 3)
+end
+
+while true do
+    removeHooks()
+
+function retrieve(varlist)
+if varlist[0]:find("OnDialogRequest") and varlist[1]:find("end_dialog|itemsucker_seed|Close|Update|") then
+kt = string.format([[action|dialog_return
+dialog_name|itemsucker_seed
+tilex|%d|
+tiley|%d|
+buttonClicked|retrieveitem
+
+chk_enablesucking|1
+]], varlist[1]:match("tilex|(%d+)"),varlist[1]:match("tiley|(%d+)"))
+sendPacket(kt, 2)
+return true
+end
+if varlist[0]:find("OnDialogRequest") and varlist[1]:find("end_dialog|itemremovedfromsucker|Close|Retrieve|") then
+pkt = string.format([[action|dialog_return
+dialog_name|itemremovedfromsucker
+tilex|%d|
+tiley|%d|
+itemtoremove|200
+]], varlist[1]:match("tilex|(%d+)"),varlist[1]:match("tiley|(%d+)"), varlist[1]:match("itemtoremove|(%d+)"))
+
+sendPacket(pkt, 2)
+return true
+end
+end
+addHook("OnVarlist", "fastretrievegaia", retrieve)
+
+a = 1
+while a <= 2 do 
+    a = a + 1
+    gaia = 1
+    ut = 1
+    fissure = 0
+    door = 0
+    fissurepos = {}
+    gaiapos = {}
+    utpos = {}
+    doorpos = {}
+
+for _, tile in ipairs(getTiles()) do 
+    if tile.fg == ObsidianID then 
+        table.insert(gaiapos, tile.pos)
+        gaia = gaia
+    end
+end
+if gaia > 0 then
+    for i = 1, gaia do
+        findPath(gaiapos[i].x, gaiapos[i].y-1)
+        sleep(200)
+        tilex = getLocal().pos.x / 32
+        tiley = getLocal().pos.y / 32
+        hitTile(tilex, tiley+1)
+        sendPacket(pkt, 2)
+    end
+end
+sleep(1000)
+joinWorld(world_drop)
+sleep(delay_pindahWorld)
+for _, tile in ipairs(getTiles()) do 
+    if tile.fg == FissureID then 
+        table.insert(fissurepos, tile.pos)
+        fissure = fissure + 1
+    end
+end
+if fissure > 0 then
+    for i = 1, fissure do
+        findPath(fissurepos[i].x+1, fissurepos[i].y)
+        faceSide("left")
+        sleep(200)
+        dropItem(seedsID,CountID)
+        sleep(500)
+        sendPacket(pkt, 2)
+    end
+end
+sleep(500)
+joinWorld(world_break)
+sleep(delay_pindahWorld)
+end
+sleep(500)
+joinWorld(world_break)
+sleep(delay_pindahWorld)
+
+
+
+removeHooks()
+
+
+function retrieve(varlist)
+if varlist[0]:find("OnDialogRequest") and varlist[1]:find("end_dialog|itemsucker_block|Close|Update|") then
+kt = string.format([[action|dialog_return
+dialog_name|itemsucker_block
+tilex|%d|
+tiley|%d|
+buttonClicked|retrieveitem
+
+chk_enablesucking|1
+]], varlist[1]:match("tilex|(%d+)"),varlist[1]:match("tiley|(%d+)"))
+sendPacket(kt, 2)
+return true
+end
+if varlist[0]:find("OnDialogRequest") and varlist[1]:find("end_dialog|itemremovedfromsucker|Close|Retrieve|") then
+pkt = string.format([[action|dialog_return
+dialog_name|itemremovedfromsucker
+tilex|%d|
+tiley|%d|
+itemtoremove|200
+]], varlist[1]:match("tilex|(%d+)"),varlist[1]:match("tiley|(%d+)"), varlist[1]:match("itemtoremove|(%d+)"))
+
+sendPacket(pkt, 2)
+return true
+end
+end
+addHook("OnVarlist", "fastretrieveut", retrieve)
+
+
+for _, tile in ipairs(getTiles()) do 
+    if tile.fg == PlatID then 
+        table.insert(utpos, tile.pos)
+        ut = ut
+    end
+end
+if ut > 0 then
+    for i = 1, ut do
+        findPath(utpos[i].x, utpos[i].y-1)
+        sleep(200)
+        tilex = getLocal().pos.x / 32
+        tiley = getLocal().pos.y / 32
+        hitTile(tilex, tiley+1)
+        sendPacket(pkt, 2)
+    end
+end
+sleep(1000)
+for _, tile in ipairs(getTiles()) do 
+    if tile.fg == DoorID then 
+        table.insert(doorpos, tile.pos)
+        door = door + 1
+    end
+end
+if door > 0 then
+    for i = 1, door do
+        findPath(doorpos[i].x+1, doorpos[i].y)
+        faceSide("left")
+        sleep(200)
+        dropItem(blocksID,CountID)
+        sleep(500)
+        sendPacket(pkt, 2)
+    end
+end
+sleep(1500)
+end
